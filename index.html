@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ledger Instinct — T-account drill</title>
+  <style>
+    :root { --ink:#f1efe8; --muted:#989a94; --paper:#111310; --lime:#d4f36b; --red:#ff8170; }
+    * { box-sizing:border-box; }
+    body { margin:0; min-width:280px; background:var(--paper); color:var(--ink); font-family:Arial,Helvetica,sans-serif; }
+    button { font:inherit; }
+    .drill-shell { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; padding:25px 38px 21px; background:radial-gradient(ellipse at 50% 46%,#1d211c 0%,#111310 55%); }
+    .quiet-header, footer { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
+    .wordmark { color:#d7d9d0; font-weight:700; letter-spacing:.18em; }.session { font-variant-numeric:tabular-nums; }
+    .focus-area { width:min(100%,680px); margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; }
+    .eyebrow { margin:0 0 17px; color:var(--lime); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; }
+    h1 { margin:0; font-size:clamp(36px,5vw,56px); letter-spacing:-.06em; font-weight:650; line-height:1; }.account-type { margin:10px 0 36px; color:var(--muted); font-size:13px; }
+    .t-account { width:min(100%,590px); display:grid; grid-template-columns:1fr 1fr; position:relative; border-top:2px solid #e7e8e0; margin-bottom:40px; }
+    .account-title { position:absolute; top:-29px; left:50%; transform:translateX(-50%); white-space:nowrap; color:#b7bab0; font-size:10px; text-transform:uppercase; letter-spacing:.16em; }
+    .side { min-height:128px; border:0; background:transparent; color:var(--ink); display:flex; justify-content:center; align-items:center; gap:13px; cursor:pointer; font-size:21px; letter-spacing:-.03em; transition:background .18s ease,color .18s ease; }
+    .side:hover:not(:disabled),.side:focus-visible { background:rgba(212,243,107,.13); outline:none; }.debit { border-right:2px solid #e7e8e0; }.side:disabled { cursor:default; }
+    kbd { font-family:inherit; color:#7e8179; border:1px solid #4f544c; padding:2px 5px; border-radius:3px; font-size:10px; letter-spacing:.05em; }.correct,.reveal { color:var(--lime); background:rgba(212,243,107,.12); }.incorrect { color:var(--red); background:rgba(255,129,112,.12); }
+    .prompt-card { width:min(100%,570px); border-left:1px solid #5e635a; text-align:left; padding:3px 0 3px 20px; }.prompt-number { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.15em; }
+    .prompt-card p { margin:8px 0 0; color:#e0e2d9; font-family:Georgia,"Times New Roman",serif; font-size:clamp(19px,2.25vw,25px); line-height:1.34; }
+    .feedback { min-height:0; max-height:0; overflow:hidden; width:min(100%,570px); text-align:left; opacity:0; transition:max-height .25s ease,opacity .25s ease,margin .25s ease; }.feedback.visible { max-height:160px; opacity:1; margin-top:24px; }.feedback p { margin:6px 0 13px; color:#b9bcb3; font-size:13px; line-height:1.45; }.result-good,.result-try { font-size:13px; font-weight:700; }.result-good { color:var(--lime); }.result-try { color:var(--red); }.next { border:0; background:none; color:var(--ink); padding:0; cursor:pointer; font-size:13px; font-weight:700; }.next span { color:var(--lime); margin-left:7px; }
+    footer { gap:16px; justify-content:center; font-size:9px; color:#656961; }@media(max-width:560px){.drill-shell{padding:20px 21px 18px}.session{font-size:9px;letter-spacing:.07em}.t-account{margin-bottom:32px}.side{min-height:112px;font-size:18px;flex-direction:column;gap:7px}.prompt-card{padding-left:15px}footer{justify-content:space-between;gap:5px}}
+  </style>
+</head>
+<body>
+  <main class="drill-shell">
+    <header class="quiet-header"><span class="wordmark">Ledger instinct</span><span class="session" id="session"></span></header>
+    <section class="focus-area" aria-live="polite">
+      <p class="eyebrow">Where does the change belong?</p><h1 id="account"></h1><p class="account-type" id="type"></p>
+      <div class="t-account" aria-label="T-account"><div class="account-title" id="account-title"></div>
+        <button class="side debit" id="debit" aria-label="Choose debit"><span>Debit</span><kbd>D</kbd></button>
+        <button class="side credit" id="credit" aria-label="Choose credit"><span>Credit</span><kbd>C</kbd></button>
+      </div>
+      <div class="prompt-card"><span class="prompt-number">Transaction</span><p id="sentence"></p></div>
+      <div class="feedback" id="feedback" aria-live="assertive"></div>
+    </section>
+    <footer><span>D = debit</span><span>C = credit</span><span>Enter = next</span></footer>
+  </main>
+  <script>
+    const drills = [
+      ['Cash','Asset','The business receives $1,200 cash from a customer for work already completed.','debit','Cash is an asset. It increased, and asset increases go on the debit side.'],
+      ['Cash','Asset',"The business pays $340 cash for this month's electricity bill.",'credit','Cash is an asset. It decreased, and asset decreases go on the credit side.'],
+      ['Accounts Receivable','Asset','The business finishes a $900 job and will collect from the customer next month.','debit','Accounts Receivable is an asset: a claim the business now has. It increased, so debit it.'],
+      ['Supplies','Asset','The business buys $180 of office supplies with cash.','debit','Supplies is an asset. The business has more supplies, so debit the account.'],
+      ['Equipment','Asset','The business sells an old printer for cash, removing it from use.','credit','Equipment is an asset. The business has less equipment, so credit the account.'],
+      ['Accounts Payable','Liability','The business receives $600 of supplies and agrees to pay the vendor later.','credit','Accounts Payable is a liability. The obligation increased, and liability increases go on the credit side.'],
+      ['Accounts Payable','Liability','The business pays $250 toward an amount it owed a supplier.','debit','Paying the supplier reduces the obligation. Liability decreases go on the debit side.'],
+      ['Notes Payable','Liability','The business borrows $5,000 from a bank and signs a note.','credit','Notes Payable is a liability. Borrowing creates more debt, so credit it.'],
+      ['Common Stock','Equity','The owner invests $10,000 cash in exchange for stock in the company.','credit','Common Stock is equity. Owner investment increases equity, and equity increases are credits.'],
+      ['Retained Earnings','Equity','The company closes a net loss into Retained Earnings at year-end.','debit','A net loss reduces Retained Earnings. Equity decreases go on the debit side.'],
+      ['Service Revenue','Revenue','The business performs landscaping work and earns $750 in cash.','credit','Revenue increased because work was earned. Revenue increases go on the credit side.'],
+      ['Sales Revenue','Revenue','A customer returns merchandise, reducing the sale previously recorded.','debit','This reduces revenue. Revenue decreases go on the debit side.'],
+      ['Rent Expense','Expense','The business uses its office for the month and incurs $1,100 of rent.','debit','Rent Expense increased. Expense increases are debits.'],
+      ['Salaries Expense','Expense','The business records $820 of employee wages for the week.','debit','Salaries Expense increased. Expense increases are debits.'],
+      ['Advertising Expense','Expense','The business corrects an earlier overstatement of advertising expense.','credit','The correction reduces an expense. Expense decreases go on the credit side.']
+    ];
+    let index = 0, choice = null, streak = 0, best = 0;
+    const els = Object.fromEntries(['session','account','type','account-title','sentence','feedback','debit','credit'].map(id => [id,document.getElementById(id)]));
+    function render(){ const d=drills[index%drills.length]; choice=null; els.account.textContent=d[0]; els.type.textContent=d[1]; els['account-title'].textContent=d[0]; els.sentence.textContent=d[2]; els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback'; els.feedback.innerHTML=''; ['debit','credit'].forEach(s=>{els[s].className=`side ${s}`;els[s].disabled=false}); }
+    function answer(side){ if(choice) return; choice=side; const d=drills[index%drills.length], correct=side===d[3]; if(correct){streak++;best=Math.max(best,streak)}else streak=0; ['debit','credit'].forEach(s=>{els[s].disabled=true;if(s===side)els[s].classList.add(correct?'correct':'incorrect');if(s===d[3])els[s].classList.add('reveal')}); els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback visible'; els.feedback.innerHTML=`<span class="${correct?'result-good':'result-try'}">${correct?'Correct.':'Not this time.'}</span><p>${d[4]}</p><button class="next" id="next">Next transaction <span>↵</span></button>`; document.getElementById('next').onclick=()=>{index++;render()}; }
+    els.debit.onclick=()=>answer('debit'); els.credit.onclick=()=>answer('credit'); document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='d')answer('debit');if(e.key.toLowerCase()==='c')answer('credit');if(e.key==='Enter'&&choice){index++;render()}}); render();
+  </script>
+</body>
+</html>
