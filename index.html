@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Ledger Instinct — T-account drill</title>
+  <title>Ledger Instinct — double-entry drill</title>
   <style>
     :root { --ink:#f1efe8; --muted:#989a94; --paper:#111310; --lime:#d4f36b; --red:#ff8170; }
     * { box-sizing:border-box; }
@@ -12,17 +12,39 @@
     .drill-shell { min-height:100vh; min-height:100dvh; display:flex; flex-direction:column; padding:25px 38px 21px; background:radial-gradient(ellipse at 50% 46%,#1d211c 0%,#111310 55%); }
     .quiet-header, footer { display:flex; align-items:center; justify-content:space-between; color:var(--muted); font-size:11px; letter-spacing:.12em; text-transform:uppercase; }
     .wordmark { color:#d7d9d0; font-weight:700; letter-spacing:.18em; }.session { font-variant-numeric:tabular-nums; }
-    .focus-area { width:min(100%,680px); margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; }
+    .focus-area { width:min(100%,760px); margin:auto; text-align:center; display:flex; flex-direction:column; align-items:center; }
     .eyebrow { margin:0 0 17px; color:var(--lime); font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.18em; }
-    h1 { margin:0; font-size:clamp(36px,5vw,56px); letter-spacing:-.06em; font-weight:650; line-height:1; }.account-type { margin:10px 0 36px; color:var(--muted); font-size:13px; }
-    .t-account { width:min(100%,590px); display:grid; grid-template-columns:1fr 1fr; position:relative; border-top:2px solid #e7e8e0; margin-bottom:40px; }
-    .account-title { position:absolute; top:-29px; left:50%; transform:translateX(-50%); white-space:nowrap; color:#b7bab0; font-size:10px; text-transform:uppercase; letter-spacing:.16em; }
-    .side { min-height:128px; border:0; background:transparent; color:var(--ink); display:flex; justify-content:center; align-items:center; gap:13px; cursor:pointer; font-size:21px; letter-spacing:-.03em; transition:background .18s ease,color .18s ease; }
-    .side:hover:not(:disabled),.side:focus-visible { background:rgba(212,243,107,.13); outline:none; }.debit { border-right:2px solid #e7e8e0; }.side:disabled { cursor:default; }
-    kbd { font-family:inherit; color:#7e8179; border:1px solid #4f544c; padding:2px 5px; border-radius:3px; font-size:10px; letter-spacing:.05em; }.correct,.reveal { color:var(--lime); background:rgba(212,243,107,.12); }.incorrect { color:var(--red); background:rgba(255,129,112,.12); }
-    .prompt-card { width:min(100%,570px); border-left:1px solid #5e635a; text-align:left; padding:3px 0 3px 20px; }.prompt-number { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.15em; }
+    h1 { margin:0; font-size:clamp(34px,5vw,52px); letter-spacing:-.06em; font-weight:650; line-height:1; }.account-type { margin:10px 0 27px; color:var(--muted); font-size:13px; }
+    kbd { font-family:inherit; color:#7e8179; border:1px solid #4f544c; padding:2px 5px; border-radius:3px; font-size:10px; letter-spacing:.05em; }
+    .prompt-card { width:min(100%,630px); border-left:1px solid #5e635a; text-align:left; padding:3px 0 3px 20px; }.prompt-number { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.15em; }
     .prompt-card p { margin:8px 0 0; color:#e0e2d9; font-family:Georgia,"Times New Roman",serif; font-size:clamp(19px,2.25vw,25px); line-height:1.34; }
-    .feedback { min-height:0; max-height:0; overflow:hidden; width:min(100%,570px); text-align:left; opacity:0; transition:max-height .25s ease,opacity .25s ease,margin .25s ease; }.feedback.visible { max-height:160px; opacity:1; margin-top:24px; }.feedback p { margin:6px 0 13px; color:#b9bcb3; font-size:13px; line-height:1.45; }.result-good,.result-try { font-size:13px; font-weight:700; }.result-good { color:var(--lime); }.result-try { color:var(--red); }.next { border:0; background:none; color:var(--ink); padding:0; cursor:pointer; font-size:13px; font-weight:700; }.next span { color:var(--lime); margin-left:7px; }
+    .entry-builder { width:min(100%,630px); display:grid; grid-template-columns:1fr 1fr; gap:1px; margin-top:30px; background:#555b52; border:1px solid #555b52; }
+    .entry-side { min-height:106px; display:flex; flex-direction:column; justify-content:center; align-items:center; gap:7px; border:0; padding:14px; background:#151814; color:var(--ink); cursor:pointer; transition:background .16s ease,color .16s ease; }
+    .entry-side:hover:not(:disabled),.entry-side:focus-visible { outline:none; background:#20241e; }
+    .entry-side:disabled { cursor:default; }
+    .entry-label { display:flex; align-items:center; gap:7px; color:#92968d; font-size:9px; font-weight:700; letter-spacing:.16em; text-transform:uppercase; }
+    .entry-account { font-size:18px; font-weight:650; letter-spacing:-.03em; }
+    .entry-account.empty { color:#676b63; font-weight:400; }
+    .entry-amount { min-height:14px; color:#b8bbb2; font-size:12px; font-variant-numeric:tabular-nums; }
+    .entry-side.correct { color:var(--lime); background:rgba(212,243,107,.11); }
+    .entry-side.incorrect { color:var(--red); background:rgba(255,129,112,.11); }
+    .entry-balance { width:min(100%,630px); padding:8px 12px; border:1px solid #3b4039; border-top:0; color:#7f837a; font-size:9px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; }
+    .entry-balance.balanced { color:var(--lime); }
+    .account-bank { width:min(100%,630px); margin-top:20px; text-align:left; }
+    .bank-label { display:flex; justify-content:space-between; gap:12px; margin-bottom:8px; color:#777b72; font-size:9px; font-weight:700; letter-spacing:.13em; text-transform:uppercase; }
+    .account-options { display:grid; grid-template-columns:1fr 1fr; gap:7px; }
+    .account-option { min-height:45px; display:grid; grid-template-columns:22px 1fr; align-items:center; gap:8px; padding:7px 9px; border:1px solid #3d423a; background:#161914; color:#d8dad2; text-align:left; cursor:pointer; transition:border-color .16s ease,background .16s ease; }
+    .account-option:hover:not(:disabled),.account-option:focus-visible { outline:none; border-color:#747b6e; background:#1c201a; }
+    .account-option.selected { border-color:var(--lime); background:rgba(212,243,107,.09); }
+    .account-option.placed:not(.selected) { color:#7f837a; background:#131512; }
+    .account-option:disabled { cursor:default; }
+    .option-key { color:#6f736b; font-size:9px; }
+    .option-name { display:block; font-size:12px; font-weight:700; }
+    .option-type { display:block; margin-top:2px; color:#777b73; font-size:9px; letter-spacing:.06em; text-transform:uppercase; }
+    .check-entry { margin-top:14px; border:1px solid #68705f; background:transparent; color:var(--lime); padding:9px 15px; cursor:pointer; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; }
+    .check-entry:hover:not(:disabled),.check-entry:focus-visible { outline:none; background:rgba(212,243,107,.1); }
+    .check-entry:disabled { color:#565a52; border-color:#33372f; cursor:default; }
+    .feedback { min-height:0; max-height:0; overflow:hidden; width:min(100%,630px); text-align:left; opacity:0; transition:max-height .25s ease,opacity .25s ease,margin .25s ease; }.feedback.visible { max-height:230px; opacity:1; margin-top:20px; }.feedback p { margin:6px 0 13px; color:#b9bcb3; font-size:13px; line-height:1.45; }.result-good,.result-try { font-size:13px; font-weight:700; }.result-good { color:var(--lime); }.result-try { color:var(--red); }.correct-entry { margin:9px 0 12px; padding:8px 10px; border-left:1px solid #5d6458; color:#d8dad1; font-size:11px; line-height:1.6; }.correct-entry strong { color:var(--lime); }.next { border:0; background:none; color:var(--ink); padding:0; cursor:pointer; font-size:13px; font-weight:700; }.next span { color:var(--lime); margin-left:7px; }
     .cheat-rail { position:fixed; z-index:20; left:0; top:50%; display:flex; align-items:center; transform:translate(calc(-100% + 29px),-50%); transition:transform .22s ease; filter:drop-shadow(9px 9px 20px rgba(0,0,0,.24)); }
     .cheat-rail.open { transform:translate(0,-50%); }
     .cheat-sheet { width:min(360px,calc(100vw - 42px)); padding:20px 19px 18px; border:1px solid #454a42; border-left:0; background:#171a16; color:var(--ink); }
@@ -35,7 +57,7 @@
     .cheat-rule strong { color:var(--lime); font-weight:700; letter-spacing:.04em; }
     .cheat-toggle { width:29px; height:70px; display:grid; place-items:center; padding:0; border:1px solid #454a42; border-left:0; border-radius:0 3px 3px 0; background:#181b17; color:#7f837a; cursor:pointer; font-size:8px; font-weight:700; letter-spacing:.13em; writing-mode:vertical-rl; text-transform:uppercase; transition:color .18s ease,background .18s ease; }
     .cheat-toggle:hover,.cheat-toggle:focus-visible,.cheat-toggle[aria-expanded="true"] { outline:none; background:#20241e; color:var(--lime); }
-    footer { gap:16px; justify-content:center; font-size:9px; color:#656961; }@media(max-width:560px){.drill-shell{padding:20px 21px 18px}.session{font-size:9px;letter-spacing:.07em}.t-account{margin-bottom:32px}.side{min-height:112px;font-size:18px;flex-direction:column;gap:7px}.prompt-card{padding-left:15px}footer{justify-content:space-between;gap:5px}}
+    footer { gap:16px; justify-content:center; font-size:9px; color:#656961; }@media(max-width:560px){.drill-shell{padding:20px 21px 18px}.session{font-size:9px;letter-spacing:.07em}.account-type{margin-bottom:22px}.prompt-card{padding-left:15px}.entry-builder{margin-top:24px}.entry-side{min-height:96px;padding:11px 8px}.entry-account{font-size:15px}.account-options{grid-template-columns:1fr}.feedback.visible{max-height:290px}footer{justify-content:space-between;gap:5px;font-size:8px}}
   </style>
 </head>
 <body>
@@ -61,42 +83,73 @@
   <main class="drill-shell">
     <header class="quiet-header"><span class="wordmark">Ledger instinct</span><span class="session" id="session"></span></header>
     <section class="focus-area" aria-live="polite">
-      <p class="eyebrow">Where does the change belong?</p><h1 id="account"></h1><p class="account-type" id="type"></p>
-      <div class="t-account" aria-label="T-account"><div class="account-title" id="account-title"></div>
-        <button class="side debit" id="debit" aria-label="Choose debit"><span>Debit</span><kbd>D</kbd></button>
-        <button class="side credit" id="credit" aria-label="Choose credit"><span>Credit</span><kbd>C</kbd></button>
-      </div>
+      <p class="eyebrow">Build the complete entry</p><h1>Double entry</h1><p class="account-type">Select an account, then assign it to the debit or credit side.</p>
       <div class="prompt-card"><span class="prompt-number">Transaction</span><p id="sentence"></p></div>
+      <div class="entry-builder" aria-label="Journal entry builder">
+        <button class="entry-side" id="debit-slot" type="button" aria-label="Place selected account on debit side">
+          <span class="entry-label">Debit <kbd>D</kbd></span><span class="entry-account empty" id="debit-account">Choose account</span><span class="entry-amount" id="debit-amount"></span>
+        </button>
+        <button class="entry-side" id="credit-slot" type="button" aria-label="Place selected account on credit side">
+          <span class="entry-label">Credit <kbd>C</kbd></span><span class="entry-account empty" id="credit-account">Choose account</span><span class="entry-amount" id="credit-amount"></span>
+        </button>
+      </div>
+      <div class="entry-balance" id="entry-balance">Debit $0 · Credit $0</div>
+      <div class="account-bank">
+        <div class="bank-label"><span>Affected accounts</span><span>Select one of four</span></div>
+        <div class="account-options" id="account-options"></div>
+      </div>
+      <button class="check-entry" id="check-entry" type="button" disabled>Check entry</button>
       <div class="feedback" id="feedback" aria-live="assertive"></div>
     </section>
-    <footer><span>D = debit</span><span>C = credit</span><span>Enter = next</span></footer>
+    <footer><span>1–4 = select</span><span>D / C = place</span><span>Enter = check or next</span></footer>
   </main>
   <script>
     const drills = [
-      ['Cash','Asset','The business receives $1,200 cash from a customer for work already completed.','debit','Cash is an asset. It increased, and asset increases go on the debit side.'],
-      ['Cash','Asset',"The business pays $340 cash for this month's electricity bill.",'credit','Cash is an asset. It decreased, and asset decreases go on the credit side.'],
-      ['Accounts Receivable','Asset','The business finishes a $900 job and will collect from the customer next month.','debit','Accounts Receivable is an asset: a claim the business now has. It increased, so debit it.'],
-      ['Supplies','Asset','The business buys $180 of office supplies with cash.','debit','Supplies is an asset. The business has more supplies, so debit the account.'],
-      ['Equipment','Asset','The business sells an old printer for cash, removing it from use.','credit','Equipment is an asset. The business has less equipment, so credit the account.'],
-      ['Accounts Payable','Liability','The business receives $600 of supplies and agrees to pay the vendor later.','credit','Accounts Payable is a liability. The obligation increased, and liability increases go on the credit side.'],
-      ['Accounts Payable','Liability','The business pays $250 toward an amount it owed a supplier.','debit','Paying the supplier reduces the obligation. Liability decreases go on the debit side.'],
-      ['Notes Payable','Liability','The business borrows $5,000 from a bank and signs a note.','credit','Notes Payable is a liability. Borrowing creates more debt, so credit it.'],
-      ['Common Stock','Equity','The owner invests $10,000 cash in exchange for stock in the company.','credit','Common Stock is equity. Owner investment increases equity, and equity increases are credits.'],
-      ['Retained Earnings','Equity','The company closes a net loss into Retained Earnings at year-end.','debit','A net loss reduces Retained Earnings. Equity decreases go on the debit side.'],
-      ['Service Revenue','Revenue','The business performs landscaping work and earns $750 in cash.','credit','Revenue increased because work was earned. Revenue increases go on the credit side.'],
-      ['Sales Revenue','Revenue','A customer returns merchandise, reducing the sale previously recorded.','debit','This reduces revenue. Revenue decreases go on the debit side.'],
-      ['Rent Expense','Expense','The business uses its office for the month and incurs $1,100 of rent.','debit','Rent Expense increased. Expense increases are debits.'],
-      ['Salaries Expense','Expense','The business records $820 of employee wages for the week.','debit','Salaries Expense increased. Expense increases are debits.'],
-      ['Advertising Expense','Expense','The business corrects an earlier overstatement of advertising expense.','credit','The correction reduces an expense. Expense decreases go on the credit side.']
+      { transaction:'The business receives $1,200 cash from a customer for work already completed.', amount:1200, debit:'Cash', credit:'Service Revenue', choices:[['Cash','Asset'],['Service Revenue','Revenue'],['Accounts Receivable','Asset'],['Common Stock','Equity']], explanation:'Cash increased, so debit the asset. Service Revenue increased because the work was earned, so credit revenue.' },
+      { transaction:"The business pays $340 cash for this month's electricity bill.", amount:340, debit:'Utilities Expense', credit:'Cash', choices:[['Utilities Expense','Expense'],['Cash','Asset'],['Accounts Payable','Liability'],['Service Revenue','Revenue']], explanation:'Utilities Expense increased, so debit the expense. Cash decreased, so credit the asset.' },
+      { transaction:'The business completes a $900 job and will collect from the customer next month.', amount:900, debit:'Accounts Receivable', credit:'Service Revenue', choices:[['Accounts Receivable','Asset'],['Service Revenue','Revenue'],['Cash','Asset'],['Unearned Revenue','Liability']], explanation:'The customer now owes the business, increasing Accounts Receivable with a debit. Earned Service Revenue increases with a credit.' },
+      { transaction:'The business buys $180 of office supplies and pays cash immediately.', amount:180, debit:'Supplies', credit:'Cash', choices:[['Supplies','Asset'],['Cash','Asset'],['Supplies Expense','Expense'],['Accounts Payable','Liability']], explanation:'Unused supplies increase the Supplies asset, so debit it. Paying immediately decreases Cash, so credit Cash.' },
+      { transaction:'The business purchases equipment for $1,500 cash.', amount:1500, debit:'Equipment', credit:'Cash', choices:[['Equipment','Asset'],['Cash','Asset'],['Depreciation Expense','Expense'],['Accounts Payable','Liability']], explanation:'Equipment increased, so debit the asset. Cash decreased to acquire it, so credit Cash.' },
+      { transaction:'The business receives $600 of supplies and agrees to pay the vendor later.', amount:600, debit:'Supplies', credit:'Accounts Payable', choices:[['Supplies','Asset'],['Accounts Payable','Liability'],['Cash','Asset'],['Supplies Expense','Expense']], explanation:'Supplies increased, so debit the asset. The unpaid obligation increases Accounts Payable, so credit the liability.' },
+      { transaction:'The business pays $250 toward an amount it owed a supplier.', amount:250, debit:'Accounts Payable', credit:'Cash', choices:[['Accounts Payable','Liability'],['Cash','Asset'],['Supplies','Asset'],['Service Revenue','Revenue']], explanation:'Paying the supplier reduces Accounts Payable, so debit the liability. Cash decreases, so credit the asset.' },
+      { transaction:'The business borrows $5,000 from a bank and signs a note.', amount:5000, debit:'Cash', credit:'Notes Payable', choices:[['Cash','Asset'],['Notes Payable','Liability'],['Interest Expense','Expense'],['Common Stock','Equity']], explanation:'Borrowing increases Cash, so debit the asset. It also increases Notes Payable, so credit the liability.' },
+      { transaction:'An investor contributes $10,000 cash in exchange for common stock.', amount:10000, debit:'Cash', credit:'Common Stock', choices:[['Cash','Asset'],['Common Stock','Equity'],['Service Revenue','Revenue'],['Retained Earnings','Equity']], explanation:'The corporation receives Cash, increasing the asset with a debit. Issuing shares increases Common Stock with a credit.' },
+      { transaction:'The corporation pays a $500 cash dividend to stockholders.', amount:500, debit:'Dividends', credit:'Cash', choices:[['Dividends','Dividend'],['Cash','Asset'],['Salaries Expense','Expense'],['Common Stock','Equity']], explanation:'Dividends increase with a debit because they reduce retained capital. Paying the distribution decreases Cash, so credit Cash.' },
+      { transaction:'The business performs landscaping work and earns $750 in cash.', amount:750, debit:'Cash', credit:'Service Revenue', choices:[['Cash','Asset'],['Service Revenue','Revenue'],['Accounts Receivable','Asset'],['Unearned Revenue','Liability']], explanation:'Cash increased and is debited. Service Revenue increased because the work was performed and is credited.' },
+      { transaction:'The business corrects a $120 overstatement of Service Revenue previously billed to a customer.', amount:120, debit:'Service Revenue', credit:'Accounts Receivable', choices:[['Service Revenue','Revenue'],['Accounts Receivable','Asset'],['Cash','Asset'],['Sales Returns','Contra-revenue']], explanation:'Correcting the overstatement decreases Service Revenue, so debit it. The amount due from the customer also decreases, so credit Accounts Receivable.' },
+      { transaction:'The business pays $1,100 cash for the current month’s rent.', amount:1100, debit:'Rent Expense', credit:'Cash', choices:[['Rent Expense','Expense'],['Cash','Asset'],['Prepaid Rent','Asset'],['Accounts Payable','Liability']], explanation:'Current-period Rent Expense increased, so debit it. The cash payment decreases Cash, so credit it.' },
+      { transaction:'The business records $820 of employee wages earned this week but not yet paid.', amount:820, debit:'Salaries Expense', credit:'Salaries Payable', choices:[['Salaries Expense','Expense'],['Salaries Payable','Liability'],['Cash','Asset'],['Service Revenue','Revenue']], explanation:'Salaries Expense increased, so debit the expense. The unpaid obligation increases Salaries Payable, so credit the liability.' },
+      { transaction:'A vendor reduces the amount owed by $90 after correcting an overstated advertising invoice.', amount:90, debit:'Accounts Payable', credit:'Advertising Expense', choices:[['Accounts Payable','Liability'],['Advertising Expense','Expense'],['Cash','Asset'],['Service Revenue','Revenue']], explanation:'The corrected invoice reduces Accounts Payable, so debit the liability. It also decreases Advertising Expense, so credit the expense.' }
     ];
-    let index = 0, choice = null, streak = 0, best = 0;
-    const els = Object.fromEntries(['session','account','type','account-title','sentence','feedback','debit','credit'].map(id => [id,document.getElementById(id)]));
+    let index = 0, selectedAccount = null, entry = { debit:null, credit:null }, checked = false, streak = 0, best = 0;
+    const els = Object.fromEntries(['session','sentence','feedback','debit-slot','credit-slot','debit-account','credit-account','debit-amount','credit-amount','entry-balance','account-options','check-entry'].map(id => [id,document.getElementById(id)]));
     const cheatRail = document.getElementById('cheat-rail'), cheatSheet = document.getElementById('cheat-sheet'), cheatToggle = document.getElementById('cheat-toggle');
     function setCheatSheet(open){ cheatRail.classList.toggle('open',open); cheatSheet.setAttribute('aria-hidden',String(!open)); cheatToggle.setAttribute('aria-expanded',String(open)); cheatToggle.setAttribute('aria-label',`${open?'Close':'Open'} debit and credit cheat sheet`); }
-    function render(){ const d=drills[index%drills.length]; choice=null; els.account.textContent=d[0]; els.type.textContent=d[1]; els['account-title'].textContent=d[0]; els.sentence.textContent=d[2]; els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback'; els.feedback.innerHTML=''; ['debit','credit'].forEach(s=>{els[s].className=`side ${s}`;els[s].disabled=false}); }
-    function answer(side){ if(choice) return; choice=side; const d=drills[index%drills.length], correct=side===d[3]; if(correct){streak++;best=Math.max(best,streak)}else streak=0; ['debit','credit'].forEach(s=>{els[s].disabled=true;if(s===side)els[s].classList.add(correct?'correct':'incorrect');if(s===d[3])els[s].classList.add('reveal')}); els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback visible'; els.feedback.innerHTML=`<span class="${correct?'result-good':'result-try'}">${correct?'Correct.':'Not this time.'}</span><p>${d[4]}</p><button class="next" id="next">Next transaction <span>↵</span></button>`; document.getElementById('next').onclick=()=>{index++;render()}; }
+    function money(value){ return `$${value.toLocaleString('en-US')}`; }
+    function escapeHtml(value){ return String(value).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;'); }
+    function currentDrill(){ return drills[index%drills.length]; }
+    function renderBuilder(){
+      const d=currentDrill(), placed=[entry.debit,entry.credit];
+      ['debit','credit'].forEach(side=>{
+        const account=entry[side], slot=els[`${side}-slot`], accountEl=els[`${side}-account`], amountEl=els[`${side}-amount`];
+        slot.className='entry-side'; slot.disabled=checked; accountEl.textContent=account||'Choose account'; accountEl.classList.toggle('empty',!account); amountEl.textContent=account?money(d.amount):'';
+        slot.setAttribute('aria-label',account?`${side} ${account}, ${money(d.amount)}. ${checked?'Entry checked':'Select to remove or replace'}`:`Place selected account on ${side} side`);
+        if(checked) slot.classList.add(account===d[side]?'correct':'incorrect');
+      });
+      els['entry-balance'].textContent=`Debit ${entry.debit?money(d.amount):'$0'} · Credit ${entry.credit?money(d.amount):'$0'}`;
+      els['entry-balance'].classList.toggle('balanced',Boolean(entry.debit&&entry.credit));
+      els['account-options'].innerHTML=d.choices.map(([name,type],i)=>`<button class="account-option ${selectedAccount===name?'selected':''} ${placed.includes(name)?'placed':''}" type="button" data-account="${escapeHtml(name)}" ${checked?'disabled':''} aria-pressed="${selectedAccount===name}"><span class="option-key">${i+1}</span><span><span class="option-name">${escapeHtml(name)}</span><span class="option-type">${escapeHtml(type)}</span></span></button>`).join('');
+      els['check-entry'].disabled=checked||!entry.debit||!entry.credit;
+    }
+    function render(){ const d=currentDrill(); selectedAccount=null; entry={debit:null,credit:null}; checked=false; els.sentence.textContent=d.transaction; els.session.textContent=`${index%drills.length+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback'; els.feedback.innerHTML=''; renderBuilder(); }
+    function selectAccount(name){ if(checked)return; selectedAccount=selectedAccount===name?null:name; renderBuilder(); }
+    function placeAccount(side){ if(checked)return; if(!selectedAccount){ if(entry[side]){ selectedAccount=entry[side]; entry[side]=null; renderBuilder(); } return; } const other=side==='debit'?'credit':'debit'; if(entry[other]===selectedAccount)entry[other]=null; entry[side]=selectedAccount; selectedAccount=null; renderBuilder(); }
+    function checkEntry(){ if(checked||!entry.debit||!entry.credit)return; const d=currentDrill(), correct=entry.debit===d.debit&&entry.credit===d.credit; checked=true; if(correct){streak++;best=Math.max(best,streak)}else streak=0; els.session.textContent=`${index%drills.length+1} / ${drills.length} · streak ${streak} · best ${best}`; renderBuilder(); els.feedback.className='feedback visible'; els.feedback.innerHTML=`<span class="${correct?'result-good':'result-try'}">${correct?'Balanced and correct.':'Not this time.'}</span><div class="correct-entry"><strong>Debit</strong> ${escapeHtml(d.debit)} ${money(d.amount)}<br><strong>Credit</strong> ${escapeHtml(d.credit)} ${money(d.amount)}</div><p>${escapeHtml(d.explanation)}</p><button class="next" id="next">Next transaction <span>↵</span></button>`; document.getElementById('next').onclick=advance; }
+    function advance(){ index++; render(); }
     cheatToggle.onclick=()=>setCheatSheet(!cheatRail.classList.contains('open'));
-    els.debit.onclick=()=>answer('debit'); els.credit.onclick=()=>answer('credit'); document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cheatRail.classList.contains('open')){setCheatSheet(false);cheatToggle.focus();return}if(cheatRail.classList.contains('open'))return;if(e.key.toLowerCase()==='d')answer('debit');if(e.key.toLowerCase()==='c')answer('credit');if(e.key==='Enter'&&choice){index++;render()}}); render();
+    els['account-options'].onclick=e=>{const button=e.target.closest('[data-account]');if(button)selectAccount(button.dataset.account)};
+    els['debit-slot'].onclick=()=>placeAccount('debit'); els['credit-slot'].onclick=()=>placeAccount('credit'); els['check-entry'].onclick=checkEntry;
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cheatRail.classList.contains('open')){setCheatSheet(false);cheatToggle.focus();return}if(cheatRail.classList.contains('open'))return;if(e.key==='Escape'&&selectedAccount){selectedAccount=null;renderBuilder();return}if(!checked&&/^[1-4]$/.test(e.key)){const choice=currentDrill().choices[Number(e.key)-1];if(choice)selectAccount(choice[0]);return}if(!checked&&e.key.toLowerCase()==='d'){placeAccount('debit');return}if(!checked&&e.key.toLowerCase()==='c'){placeAccount('credit');return}if(e.key==='Enter'){if(checked)advance();else checkEntry()}}); render();
   </script>
 </body>
 </html>
