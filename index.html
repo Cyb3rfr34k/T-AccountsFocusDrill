@@ -23,10 +23,41 @@
     .prompt-card { width:min(100%,570px); border-left:1px solid #5e635a; text-align:left; padding:3px 0 3px 20px; }.prompt-number { color:var(--muted); font-size:10px; text-transform:uppercase; letter-spacing:.15em; }
     .prompt-card p { margin:8px 0 0; color:#e0e2d9; font-family:Georgia,"Times New Roman",serif; font-size:clamp(19px,2.25vw,25px); line-height:1.34; }
     .feedback { min-height:0; max-height:0; overflow:hidden; width:min(100%,570px); text-align:left; opacity:0; transition:max-height .25s ease,opacity .25s ease,margin .25s ease; }.feedback.visible { max-height:160px; opacity:1; margin-top:24px; }.feedback p { margin:6px 0 13px; color:#b9bcb3; font-size:13px; line-height:1.45; }.result-good,.result-try { font-size:13px; font-weight:700; }.result-good { color:var(--lime); }.result-try { color:var(--red); }.next { border:0; background:none; color:var(--ink); padding:0; cursor:pointer; font-size:13px; font-weight:700; }.next span { color:var(--lime); margin-left:7px; }
+    .cheat-rail { position:fixed; z-index:20; left:0; top:50%; display:flex; align-items:center; transform:translate(calc(-100% + 29px),-50%); transition:transform .22s ease; filter:drop-shadow(9px 9px 20px rgba(0,0,0,.24)); }
+    .cheat-rail.open { transform:translate(0,-50%); }
+    .cheat-sheet { width:min(360px,calc(100vw - 42px)); padding:20px 19px 18px; border:1px solid #454a42; border-left:0; background:#171a16; color:var(--ink); }
+    .cheat-kicker { margin:0 0 5px; color:var(--lime); font-size:9px; font-weight:700; letter-spacing:.18em; text-transform:uppercase; }
+    .cheat-sheet h2 { margin:0 0 17px; color:#dfe1d8; font-size:16px; font-weight:650; letter-spacing:-.02em; }
+    .cheat-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .cheat-group h3 { margin:0 0 8px; padding-bottom:7px; border-bottom:1px solid #656a61; color:#f0f1eb; font-size:11px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; line-height:1.55; }
+    .cheat-rule { margin:0; color:#aeb2a8; font-size:11px; line-height:1.55; }
+    .cheat-rule + .cheat-rule { margin-top:2px; }
+    .cheat-rule strong { color:var(--lime); font-weight:700; letter-spacing:.04em; }
+    .cheat-toggle { width:29px; height:70px; display:grid; place-items:center; padding:0; border:1px solid #454a42; border-left:0; border-radius:0 3px 3px 0; background:#181b17; color:#7f837a; cursor:pointer; font-size:8px; font-weight:700; letter-spacing:.13em; writing-mode:vertical-rl; text-transform:uppercase; transition:color .18s ease,background .18s ease; }
+    .cheat-toggle:hover,.cheat-toggle:focus-visible,.cheat-toggle[aria-expanded="true"] { outline:none; background:#20241e; color:var(--lime); }
     footer { gap:16px; justify-content:center; font-size:9px; color:#656961; }@media(max-width:560px){.drill-shell{padding:20px 21px 18px}.session{font-size:9px;letter-spacing:.07em}.t-account{margin-bottom:32px}.side{min-height:112px;font-size:18px;flex-direction:column;gap:7px}.prompt-card{padding-left:15px}footer{justify-content:space-between;gap:5px}}
   </style>
 </head>
 <body>
+  <div class="cheat-rail" id="cheat-rail">
+    <aside class="cheat-sheet" id="cheat-sheet" aria-labelledby="cheat-title" aria-hidden="true">
+      <p class="cheat-kicker">Normal balance reference</p>
+      <h2 id="cheat-title">Which side changes the account?</h2>
+      <div class="cheat-grid">
+        <section class="cheat-group">
+          <h3>Assets<br>Dividends<br>Expenses</h3>
+          <p class="cheat-rule">Increases are <strong>DEBITED</strong>.</p>
+          <p class="cheat-rule">Decreases are <strong>CREDITED</strong>.</p>
+        </section>
+        <section class="cheat-group">
+          <h3>Liabilities<br>Common Stock<br>Revenue</h3>
+          <p class="cheat-rule">Increases are <strong>CREDITED</strong>.</p>
+          <p class="cheat-rule">Decreases are <strong>DEBITED</strong>.</p>
+        </section>
+      </div>
+    </aside>
+    <button class="cheat-toggle" id="cheat-toggle" type="button" aria-controls="cheat-sheet" aria-expanded="false" aria-label="Open debit and credit cheat sheet">Reference</button>
+  </div>
   <main class="drill-shell">
     <header class="quiet-header"><span class="wordmark">Ledger instinct</span><span class="session" id="session"></span></header>
     <section class="focus-area" aria-live="polite">
@@ -60,9 +91,12 @@
     ];
     let index = 0, choice = null, streak = 0, best = 0;
     const els = Object.fromEntries(['session','account','type','account-title','sentence','feedback','debit','credit'].map(id => [id,document.getElementById(id)]));
+    const cheatRail = document.getElementById('cheat-rail'), cheatSheet = document.getElementById('cheat-sheet'), cheatToggle = document.getElementById('cheat-toggle');
+    function setCheatSheet(open){ cheatRail.classList.toggle('open',open); cheatSheet.setAttribute('aria-hidden',String(!open)); cheatToggle.setAttribute('aria-expanded',String(open)); cheatToggle.setAttribute('aria-label',`${open?'Close':'Open'} debit and credit cheat sheet`); }
     function render(){ const d=drills[index%drills.length]; choice=null; els.account.textContent=d[0]; els.type.textContent=d[1]; els['account-title'].textContent=d[0]; els.sentence.textContent=d[2]; els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback'; els.feedback.innerHTML=''; ['debit','credit'].forEach(s=>{els[s].className=`side ${s}`;els[s].disabled=false}); }
     function answer(side){ if(choice) return; choice=side; const d=drills[index%drills.length], correct=side===d[3]; if(correct){streak++;best=Math.max(best,streak)}else streak=0; ['debit','credit'].forEach(s=>{els[s].disabled=true;if(s===side)els[s].classList.add(correct?'correct':'incorrect');if(s===d[3])els[s].classList.add('reveal')}); els.session.textContent=`${index+1} / ${drills.length} · streak ${streak} · best ${best}`; els.feedback.className='feedback visible'; els.feedback.innerHTML=`<span class="${correct?'result-good':'result-try'}">${correct?'Correct.':'Not this time.'}</span><p>${d[4]}</p><button class="next" id="next">Next transaction <span>↵</span></button>`; document.getElementById('next').onclick=()=>{index++;render()}; }
-    els.debit.onclick=()=>answer('debit'); els.credit.onclick=()=>answer('credit'); document.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='d')answer('debit');if(e.key.toLowerCase()==='c')answer('credit');if(e.key==='Enter'&&choice){index++;render()}}); render();
+    cheatToggle.onclick=()=>setCheatSheet(!cheatRail.classList.contains('open'));
+    els.debit.onclick=()=>answer('debit'); els.credit.onclick=()=>answer('credit'); document.addEventListener('keydown',e=>{if(e.key==='Escape'&&cheatRail.classList.contains('open')){setCheatSheet(false);cheatToggle.focus();return}if(cheatRail.classList.contains('open'))return;if(e.key.toLowerCase()==='d')answer('debit');if(e.key.toLowerCase()==='c')answer('credit');if(e.key==='Enter'&&choice){index++;render()}}); render();
   </script>
 </body>
 </html>
